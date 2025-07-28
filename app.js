@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 5000;
 
 
 app.use(cors({
-  origin: 'https://elegant-pastelito-72fc06.netlify.app',
+  origin: 'https://shiny-croquembouche-618917.netlify.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
