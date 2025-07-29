@@ -23,11 +23,10 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error('Register error:', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 
 router.post('/request-reset', async (req, res) => {
@@ -43,26 +42,23 @@ router.post('/request-reset', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    
     const token = crypto.randomBytes(32).toString('hex');
     user.resetToken = token;
-    user.tokenExpiry = Date.now() + 1000 * 60 * 30; // 30 minutes
+    user.tokenExpiry = Date.now() + 1000 * 60 * 30; // 30 mins
     await user.save();
 
-    
     const resetLink = `https://shiny-croquembouche-618917.netlify.app/reset-password/${user._id}/${token}`;
 
-    
     try {
       await sendResetEmail(user.email, resetLink);
     } catch (emailError) {
-      console.error('Email sending failed:', emailError);
+      console.error('Email sending failed:', emailError.message);
       return res.status(500).json({ message: 'Failed to send reset email' });
     }
 
     res.status(200).json({ message: 'Password reset link sent to email' });
   } catch (err) {
-    console.error('Password reset error:', err);
+    console.error('Password reset error:', err.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -73,12 +69,21 @@ router.post('/reset-password/:userId/:token', async (req, res) => {
     const { userId, token } = req.params;
     const { newPassword } = req.body;
 
+    if (!newPassword) {
+      return res.status(400).json({ message: 'New password is required' });
+    }
+
     const user = await User.findById(userId);
-    if (!user || user.resetToken !== token || user.tokenExpiry < Date.now()) {
+
+    if (
+      !user ||
+      user.resetToken !== token ||
+      !user.tokenExpiry ||
+      user.tokenExpiry < Date.now()
+    ) {
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
-   
     user.password = newPassword;
     user.resetToken = null;
     user.tokenExpiry = null;
@@ -86,10 +91,9 @@ router.post('/reset-password/:userId/:token', async (req, res) => {
 
     res.status(200).json({ message: 'Password reset successful' });
   } catch (error) {
-    console.error('Reset password error:', error);
+    console.error('Reset password error:', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 module.exports = router;
