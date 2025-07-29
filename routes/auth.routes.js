@@ -67,4 +67,29 @@ router.post('/request-reset', async (req, res) => {
   }
 });
 
+
+router.post('/reset-password/:userId/:token', async (req, res) => {
+  try {
+    const { userId, token } = req.params;
+    const { newPassword } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user || user.resetToken !== token || user.tokenExpiry < Date.now()) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+   
+    user.password = newPassword;
+    user.resetToken = null;
+    user.tokenExpiry = null;
+    await user.save();
+
+    res.status(200).json({ message: 'Password reset successful' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 module.exports = router;
