@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/user.model');
 const crypto = require('crypto');
 const sendResetEmail = require('../utils/sendEmail');
+const bcrypt = require('bcryptjs');
 
 
 router.post('/register', async (req, res) => {
@@ -18,7 +19,9 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ message: 'User already exists' });
     }
 
-    const newUser = new User({ name, email, password });
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({ name, email, password: hashedPassword });
     await newUser.save();
 
     res.status(201).json({ message: 'User registered successfully' });
@@ -43,7 +46,9 @@ router.post('/request-reset', async (req, res) => {
     }
 
     const token = crypto.randomBytes(32).toString('hex');
-    user.resetToken = token;
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    user.resetToken = hashedToken;
     user.tokenExpiry = Date.now() + 1000 * 60 * 30; // 30 mins
     await user.save();
 
@@ -73,18 +78,20 @@ router.post('/reset-password/:userId/:token', async (req, res) => {
       return res.status(400).json({ message: 'New password is required' });
     }
 
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const user = await User.findById(userId);
 
     if (
       !user ||
-      user.resetToken !== token ||
+      user.resetToken !== hashedToken ||
       !user.tokenExpiry ||
       user.tokenExpiry < Date.now()
     ) {
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
-    user.password = newPassword;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
     user.resetToken = null;
     user.tokenExpiry = null;
     await user.save();
