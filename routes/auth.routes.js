@@ -47,7 +47,7 @@ router.post('/request-reset', async (req, res) => {
     user.tokenExpiry = Date.now() + 1000 * 60 * 30; // 30 mins
     await user.save();
 
-    const resetLink = `https://shiny-croquembouche-618917.netlify.app/reset-password/${user._id}/${token}`;
+    const resetLink = `https://idyllic-florentine-9f1669.netlify.app/reset-password/${user._id}/${token}`;
 
     try {
       await sendResetEmail(user.email, resetLink);
